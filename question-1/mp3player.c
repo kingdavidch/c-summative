@@ -1,135 +1,89 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <termios.h>
 
-// Song node structure
 typedef struct SongNode {
-    char title[256];
-    struct SongNode *prev;
-    struct SongNode *next;
+    char name[100];
+    struct SongNode* next;
+    struct SongNode* prev;
 } SongNode;
 
-// Global pointers for current song and list head
-SongNode *current = NULL;
-SongNode *head = NULL;
-
-// Non-blocking input setup
-struct termios orig_termios;
-
-void disableInputBuffering() {
-    tcgetattr(STDIN_FILENO, &orig_termios);
-    struct termios new_termios = orig_termios;
-    new_termios.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+// Function to create a new song node
+SongNode* createSongNode(const char* name) {
+    SongNode* newNode = (SongNode*)malloc(sizeof(SongNode));
+    strcpy(newNode->name, name);
+    newNode->next = NULL;
+    newNode->prev = NULL;
+    return newNode;
 }
 
-void restoreInputBuffering() {
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
-}
-
-// Load songs from directory
-void loadSongs(const char *dirPath) {
-    DIR *dir = opendir(dirPath);
-    if (!dir) {
-        printf("Error: Could not open directory '%s'. Ensure it exists.\n", dirPath);
+// Function to add a song to the doubly linked list
+void addSong(SongNode** head, const char* name) {
+    SongNode* newNode = createSongNode(name);
+    if (*head == NULL) {
+        *head = newNode;
         return;
     }
-
-    struct dirent *entry;
-    SongNode *prev = NULL;
-
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) { // Regular file
-            SongNode *newNode = (SongNode *)malloc(sizeof(SongNode));
-            if (!newNode) {
-                printf("Memory allocation failed.\n");
-                closedir(dir);
-                return;
-            }
-
-            strcpy(newNode->title, entry->d_name);
-            newNode->prev = prev;
-            newNode->next = NULL;
-
-            if (head == NULL) {
-                head = newNode;
-            } else {
-                prev->next = newNode;
-                newNode->prev = prev;
-            }
-            prev = newNode;
-        }
+    SongNode* temp = *head;
+    while (temp->next != NULL) {
+        temp = temp->next;
     }
-    closedir(dir);
+    temp->next = newNode;
+    newNode->prev = temp;
 }
 
-// Simulate play/pause/stop (audio library integration recommended)
-void playSong() {
-    if (current)
-        printf("Playing: %s\n", current->title);
-}
+// Function to navigate the playlist
+void navigatePlaylist(SongNode** current) {
+    char command;
+    while (1) {
+        if (*current == NULL) {
+            printf("No songs available.\n");
+            return;
+        }
+        printf("Now playing: %s\n", (*current)->name);
+        printf("Enter 'n' for next, 'p' for previous, or 'q' to quit: ");
+        scanf(" %c", &command);
 
-void pauseSong() { printf("Paused\n"); }
-void stopSong() { printf("Stopped\n"); }
-
-// Free memory allocated for the linked list
-void cleanup() {
-    SongNode *temp = head;
-    while (temp) {
-        SongNode *next = temp->next;
-        free(temp);
-        temp = next;
+        if (command == 'n') {
+            if ((*current)->next != NULL) {
+                *current = (*current)->next;
+            } else {
+                printf("End of playlist reached.\n");
+            }
+        } else if (command == 'p') {
+            if ((*current)->prev != NULL) {
+                *current = (*current)->prev;
+            } else {
+                printf("Start of playlist reached.\n");
+            }
+        } else if (command == 'q') {
+            break;
+        } else {
+            printf("Invalid command. Try again.\n");
+        }
     }
 }
 
 int main() {
-    loadSongs("./songs"); // Load from directory
+    SongNode* head = NULL;
+    SongNode* current = NULL;
 
-    // Check if songs were loaded
-    if (head == NULL) {
-        printf("No songs found in the directory.\n");
-        return 1;
-    }
+    // Add songs to the playlist
+    addSong(&head, "Song1");
+    addSong(&head, "Song2");
+    addSong(&head, "Song3");
 
     current = head;
-    disableInputBuffering();
 
-    char cmd;
-    while (1) {
-        printf("\nCommand [n: next, p: previous, s: stop, q: quit]: ");
-        cmd = getchar();
-        getchar(); // To consume newline character
+    // Navigate the playlist
+    navigatePlaylist(&current);
 
-        switch (cmd) {
-            case 'n':
-                if (current->next) {
-                    current = current->next;
-                    playSong();
-                } else {
-                    printf("End of playlist.\n");
-                }
-                break;
-            case 'p':
-                if (current->prev) {
-                    current = current->prev;
-                    playSong();
-                } else {
-                    printf("Start of playlist.\n");
-                }
-                break;
-            case 's':
-                stopSong();
-                break;
-            case 'q':
-                restoreInputBuffering();
-                cleanup();
-                printf("Exiting...\n");
-                return 0;
-            default:
-                printf("Invalid command. Use 'n' for next, 'p' for previous, 's' for stop, 'q' for quit.\n");
-        }
+    // Free memory
+    while (head != NULL) {
+        SongNode* temp = head;
+        head = head->next;
+        free(temp);
     }
+
+    return 0;
 }
