@@ -1,50 +1,53 @@
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 
-#define MAX_NODES 8
-char *numbers[MAX_NODES] = {"0781", "0782", "0783", "0784", "0785", "0786", "0787", "0788"};
-int matrix[MAX_NODES][MAX_NODES] = {0};
+#define MAX_NODES 10
 
-int getIndex(char *num) {
-    for (int i = 0; i < MAX_NODES; i++)
-        if (strcmp(numbers[i], num) == 0) return i;
-    return -1;
-}
-
-void addEdge(char *a, char *b) {
-    int i = getIndex(a), j = getIndex(b);
-    matrix[i][j] = matrix[j][i] = 1;
-}
-
-void printContacts(char *num) {
-    int idx = getIndex(num);
-    if (idx == -1) { printf("Invalid number\n"); return; }
-    printf("Direct contacts: ");
-    for (int i = 0; i < MAX_NODES; i++)
-        if (matrix[idx][i]) printf("%s ", numbers[i]);
-    printf("\n");
-}
-
-void printMatrix() {
-    printf("\nAdjacency Matrix:\n");
-    for (int i = 0; i < MAX_NODES; i++) {
-        for (int j = 0; j < MAX_NODES; j++)
-            printf("%d ", matrix[i][j]);
-        printf("\n");
+// Function to initialize adjacency matrix
+void initializeMatrix(int matrix[MAX_NODES][MAX_NODES], int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            matrix[i][j] = 0;
+        }
     }
 }
 
-int main() {
-    // Define edges as per the problem
-    addEdge("0781", "0782"); addEdge("0781", "0783");
-    addEdge("0782", "0784"); addEdge("0783", "0785");
-    addEdge("0784", "0785"); addEdge("0784", "0786");
-    addEdge("0785", "0787"); addEdge("0786", "0788");
+// Function to add an edge to the graph
+void addEdge(int matrix[MAX_NODES][MAX_NODES], int u, int v) {
+    matrix[u][v] = 1;
+    matrix[v][u] = 1;
+}
 
-    char input[5];
-    printf("Enter a phone number: ");
-    scanf("%s", input);
-    printContacts(input);
-    printMatrix();
+// Function to find direct contacts
+void findDirectContacts(int matrix[MAX_NODES][MAX_NODES], int size, int node) {
+    printf("Direct contacts of node %d: ", node);
+    for (int i = 0; i < size; i++) {
+        if (matrix[node][i] == 1) {
+            printf("%d ", i);
+        }
+    }
+    printf("\n");
+}
+
+int main() {
+    int matrix[MAX_NODES][MAX_NODES];
+    initializeMatrix(matrix, MAX_NODES);
+
+    // Add edges based on the problem statement
+    addEdge(matrix, 0, 1); // 0781 calls 0782
+    addEdge(matrix, 0, 2); // 0781 calls 0783
+    addEdge(matrix, 1, 3); // 0782 calls 0784
+    addEdge(matrix, 2, 4); // 0783 calls 0785
+    addEdge(matrix, 3, 4); // 0784 calls 0785
+    addEdge(matrix, 3, 5); // 0784 calls 0786
+    addEdge(matrix, 4, 6); // 0785 calls 0787
+    addEdge(matrix, 5, 7); // 0786 calls 0788
+
+    int node;
+    printf("Enter a node to find direct contacts: ");
+    scanf("%d", &node);
+
+    findDirectContacts(matrix, MAX_NODES, node);
+
     return 0;
 }
